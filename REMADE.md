@@ -1,0 +1,2 @@
+自用的php curl类
+自带cookie管理类

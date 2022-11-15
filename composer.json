@@ -1,0 +1,21 @@
+{
+    "name": "ibazhe/php_curl",
+    "description": "ziyong",
+    "type": "1",
+    "require": {
+        "php": ">=5.6.0"
+    },
+    "license": "Apache-2.0",
+    "autoload": {
+        "psr-4": {
+            "Ibazhe\\PhpCurl\\": "src/PhpCurl"
+        }
+    },
+    "authors": [
+        {
+            "name": "bazhe",
+            "email": "1031601644@qq.com"
+        }
+    ],
+    "minimum-stability": "dev"
+}
