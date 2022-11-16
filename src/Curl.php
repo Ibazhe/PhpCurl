@@ -7,7 +7,9 @@
  */
 namespace Ibazhe\PhpCurl;
 
-class curl
+use Ibazhe\Cookies\CookiesManager;
+
+class Curl
 {
     protected $url;
     protected $request_header = array();

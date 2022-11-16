@@ -5,5 +5,5 @@
  * description :
  */
 require "../vendor/autoload.php";
-$test = new \Ibazhe\PhpCurl\curl();
+$test = new \Ibazhe\PhpCurl\Curl();
 echo $test->open("GET","http://www.baidu.com")->send()->getResponseBody();
