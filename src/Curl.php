@@ -225,7 +225,7 @@ class Curl
         curl_close($this->ch);
         $this->response_header = substr($ret, 0, $headerSize);
         $this->response_body   = substr($ret, $headerSize);
-        $this->cookies->upH($this->response_header);
+        $this->cookies->upH($this->response_header,$this->url);
         return $this;
     }
 
