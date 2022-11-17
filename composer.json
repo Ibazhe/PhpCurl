@@ -5,7 +5,7 @@
     "require": {
         "php": ">=5.6.0",
         "ext-curl": "*",
-        "ibazhe/cookies": "dev-master"
+        "ibazhe/cookies": "1.0.3"
     },
     "license": "Apache-2.0",
     "autoload": {
