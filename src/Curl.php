@@ -5,6 +5,7 @@
  * creatTime   : 2022/11/15 21:53
  * description :
  */
+
 namespace Ibazhe\PhpCurl;
 
 use Ibazhe\Cookies\CookiesManager;
@@ -25,8 +26,8 @@ class Curl
     public $cookies;
 
 
-    public function __construct() {
-        $this->cookies = new CookiesManager();
+    public function __construct($serialize_cookies = null) {
+        $this->cookies = new CookiesManager($serialize_cookies);
         return $this;
     }
 
@@ -175,6 +176,7 @@ class Curl
         $this->setRequestHeader('Referer', $value);
         return $this;
     }
+
     public function setOrigin($value = '') {
         $this->setRequestHeader('Origin', $value);
         return $this;
@@ -196,7 +198,7 @@ class Curl
     }
 
     public function send($post = '') {
-        if($this->ua){
+        if ($this->ua) {
             $this->setRequestHeader('User-Agent', $this->ua);
         }
         $cookies = $this->cookies->getCookies($this->url);
@@ -225,7 +227,7 @@ class Curl
         curl_close($this->ch);
         $this->response_header = substr($ret, 0, $headerSize);
         $this->response_body   = substr($ret, $headerSize);
-        $this->cookies->upH($this->response_header,$this->url);
+        $this->cookies->upH($this->response_header, $this->url);
         return $this;
     }
 
