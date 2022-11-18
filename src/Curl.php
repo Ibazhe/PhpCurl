@@ -8,25 +8,27 @@
 
 namespace Ibazhe\PhpCurl;
 
+use Exception;
 use Ibazhe\Cookies\CookiesManager;
 
 class Curl
 {
     protected $url;
-    protected $request_header = array();
-    protected $response_header;
-    protected $response_header_arr = array();
+    protected $request_headers = array();
+    protected $response_headers;
+    protected $response_headers_arr = array();
     protected $response_body;
     protected $timeout = 10;
     protected $fake_ip;
     protected $proxy;
     protected $ch;
+    protected $redirect_max_num = 0;
     protected $redirect_num = 0;
     protected $ua;
     public $cookies;
 
 
-    public function __construct($serialize_cookies = null) {
+    public function __construct($serialize_cookies = '') {
         $this->cookies = new CookiesManager($serialize_cookies);
         return $this;
     }
@@ -37,34 +39,7 @@ class Curl
      * @return void
      */
     public function setRedirect($num = 20) {
-        $this->redirect_num = $num;
-    }
-
-    /**
-     * 获取返回的header
-     * @param $name string 为空则获取全部header
-     * @return array|mixed
-     */
-    public function getResponseHeader($name = '') {
-        if ($name == '') {
-            return $this->response_header;
-        }
-        //只有首次查询才遍历1次
-        if ($this->response_header != '' && count($this->response_header_arr) == 0) {
-            $header_line_arr = explode("\r\n", $this->response_header);
-            foreach ($header_line_arr as $header_line) {
-                $header_name_offset                      = stripos($header_line, ":");
-                $header_name                             = trim(substr($header_line, 0, $header_name_offset));
-                $header_value                            = trim(substr($header_line, $header_name_offset + 1));
-                $this->response_header_arr[$header_name] = $header_value;
-            }
-        }
-        foreach ($this->response_header_arr as $key => $response_header) {
-            if (strcasecmp($key, $name) == 0) {
-                return $this->response_header_arr[$key];
-            }
-        }
-        return false;
+        $this->redirect_max_num = $num;
     }
 
     /**
@@ -92,14 +67,6 @@ class Curl
     }
 
     /**
-     * 获取返回信息
-     * @return mixed
-     */
-    public function getResponseBody() {
-        return $this->response_body;
-    }
-
-    /**
      * 设置超时时间
      * @param $time
      * @return $this
@@ -110,48 +77,86 @@ class Curl
     }
 
     /**
+     * 设置后一直有效
+     * @param $value
+     * @return $this
+     */
+    public function setUserAgent($value = 'Mozilla/5.0 (compatible; MSIE 10.0; Windows NT 6.2)') {
+        $this->ua = $value;
+        return $this;
+    }
+
+    /**
      * 创建一个CURL句柄
      * @param $method string GET/POST/PUT/DELETE...
      * @param $url    string
      * @return $this
+     * @throws Exception
      */
     public function open($method, $url) {
-        $this->response_header_arr = array();
-        $this->request_header      = array();
-        $this->response_body       = '';
+        CookiesManager::checkUrl($url);
+        $this->response_headers_arr = array();
+        $this->request_headers      = array();
+        $this->response_body        = '';
         //重置
         $this->url = $url;
         $this->ch  = curl_init();
         curl_setopt($this->ch, CURLOPT_URL, $this->url);
         curl_setopt($this->ch, CURLOPT_CUSTOMREQUEST, $method);
         if (!empty($this->fake_ip)) {
-            $this->request_header[] = "X-Forwarded-For: " . $this->fake_ip;
-            $this->request_header[] = "X-Originating-IP: " . $this->fake_ip;
-            $this->request_header[] = "X-Remote-IP: " . $this->fake_ip;
-            $this->request_header[] = "X-Remote-Addr: " . $this->fake_ip;
-            $this->request_header[] = "X-Client-IP: " . $this->fake_ip;
-            $this->request_header[] = "Forwarded-For: " . $this->fake_ip;
-            $this->request_header[] = "Originating-IP: " . $this->fake_ip;
-            $this->request_header[] = "Remote-IP: " . $this->fake_ip;
-            $this->request_header[] = "Remote-Addr: " . $this->fake_ip;
-            $this->request_header[] = "Client-IP: " . $this->fake_ip;
+            $this->request_headers[] = "X-Forwarded-For: " . $this->fake_ip;
+            $this->request_headers[] = "X-Originating-IP: " . $this->fake_ip;
+            $this->request_headers[] = "X-Remote-IP: " . $this->fake_ip;
+            $this->request_headers[] = "X-Remote-Addr: " . $this->fake_ip;
+            $this->request_headers[] = "X-Client-IP: " . $this->fake_ip;
+            $this->request_headers[] = "Forwarded-For: " . $this->fake_ip;
+            $this->request_headers[] = "Originating-IP: " . $this->fake_ip;
+            $this->request_headers[] = "Remote-IP: " . $this->fake_ip;
+            $this->request_headers[] = "Remote-Addr: " . $this->fake_ip;
+            $this->request_headers[] = "Client-IP: " . $this->fake_ip;
         }
         return $this;
     }
 
-    public function setRequestHeader($Header, $Value) {
-        $this->request_header[] = $Header . ': ' . $Value;
+    /**
+     * 类内部自用的，CURLOPT_HTTPHEADER的时候用
+     * @return array
+     */
+    protected function buildRequestHeadersArray() {
+        $arr = array();
+        foreach ($this->request_headers as $header) {
+            $arr[] = $header['name'] . ': ' . $header['value'];
+        }
+        return $arr;
+    }
+
+    /**
+     * 设置本次请求头
+     * @param $name
+     * @param $value
+     * @return $this
+     */
+    public function setRequestHeader($name, $value) {
+        foreach ($this->request_headers as $k => $v) {
+            if (CookiesManager::equal($k, $name)) {
+                unset($this->request_headers[$k]);
+            }
+        }
+        $this->request_headers[] = ['name' => trim($name), 'value' => trim($value)];
         return $this;
     }
 
     /**
-     * 批量添加cookies
-     * @param $Headers array 每个数组都是一条header
+     * 批量添加headers
+     * @param $headers array 每个数组都是一条header name: value
      * @return $this
      */
-    public function setRequestHeaders($Headers) {
-        foreach ($Headers as $header) {
-            $this->request_header[] = $header;
+    public function setRequestHeaders($headers) {
+        foreach ($headers as $header) {
+            $arr = explode(':', $header);
+            if (count($headers) == 2) {
+                $this->setRequestHeader($arr[0], $arr[1]);
+            }
         }
         return $this;
     }
@@ -182,21 +187,17 @@ class Curl
         return $this;
     }
 
-    /**
-     * 设置后一直有效
-     * @param $value
-     * @return $this
-     */
-    public function setUserAgent($value = 'Mozilla/5.0 (compatible; MSIE 10.0; Windows NT 6.2)') {
-        $this->ua = $value;
-        return $this;
-    }
-
     public function setXMLHttpRequest() {
         $this->setRequestHeader('X-Requested-With', 'XMLHttpRequest');
         return $this;
     }
 
+    /**
+     * 发送请求
+     * @param $post string|string[]
+     * @return $this
+     * @throws Exception
+     */
     public function send($post = '') {
         if ($this->ua) {
             $this->setRequestHeader('User-Agent', $this->ua);
@@ -205,13 +206,16 @@ class Curl
         if ($cookies) {
             $this->setRequestHeader('Cookie', $cookies);
         }
-        if (count($this->request_header) > 0) {
-            curl_setopt($this->ch, CURLOPT_HTTPHEADER, $this->request_header);
+        if (count($this->request_headers) > 0) {
+            curl_setopt($this->ch, CURLOPT_HTTPHEADER, $this->request_headers);
         }
         if (!empty($this->proxy)) {
             curl_setopt($this->ch, CURLOPT_PROXY, $this->proxy); //代理服务器地址
         }
         if (!empty($post)) {
+            if (is_array($post)) {
+                $post = http_build_query($post);
+            }
             curl_setopt($this->ch, CURLOPT_POSTFIELDS, $post);
         }
         curl_setopt($this->ch, CURLOPT_SSL_VERIFYPEER, FALSE);
@@ -225,18 +229,63 @@ class Curl
         $ret        = curl_exec($this->ch);
         $headerSize = curl_getinfo($this->ch, CURLINFO_HEADER_SIZE);
         curl_close($this->ch);
-        $this->response_header = substr($ret, 0, $headerSize);
-        $this->response_body   = substr($ret, $headerSize);
-        $this->cookies->upH($this->response_header, $this->url);
+        $this->response_headers = substr($ret, 0, $headerSize);
+        $this->response_body    = substr($ret, $headerSize);
+        $this->cookies->upH($this->response_headers, $this->url);
+        if ($this->redirect_num < $this->redirect_max_num) {
+            $location = $this->getResponseHeader('location');
+            return $this->open('GET', $location)->send();
+        }
+        $this->redirect_num = 0;//已经跳转的次数归0
         return $this;
     }
 
+    /**
+     * 获取返回的header
+     * @param $name string 为空则获取全部header
+     * @return array|mixed
+     */
+    public function getResponseHeader($name = '') {
+        if ($name == '') {
+            return $this->response_headers;
+        }
+        //只有首次查询才遍历1次
+        if ($this->response_headers != '' && count($this->response_headers_arr) == 0) {
+            $header_line_arr = explode("\r\n", $this->response_headers);
+            foreach ($header_line_arr as $header_line) {
+                $header_name_offset                       = stripos($header_line, ":");
+                $header_name                              = trim(substr($header_line, 0, $header_name_offset));
+                $header_value                             = trim(substr($header_line, $header_name_offset + 1));
+                $this->response_headers_arr[$header_name] = $header_value;
+            }
+        }
+        foreach ($this->response_headers_arr as $key => $response_headers) {
+            if (strcasecmp($key, $name) == 0) {
+                return $this->response_headers_arr[$key];
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 获取返回信息
+     * @return mixed
+     */
+    public function getResponseBody() {
+        return $this->response_body;
+    }
+
+    /**
+     * 取两个字符串中间的字符串，如果左边两边的字符串任何一个不存在则返回false
+     * @param $str
+     * @param $leftStr
+     * @param $rightStr
+     * @return false|string
+     */
     public static function getSubstr($str, $leftStr, $rightStr) {
-        $left = strpos($str, $leftStr);
-        //echo '左边:'.$left;
+        $left  = strpos($str, $leftStr);
         $right = strpos($str, $rightStr, $left);
-        //echo '<br>右边:'.$right;
-        if ($left < 0 or $right < $left) return '';
+        if ($left === false || $right === false) return false;
         return substr($str, $left + strlen($leftStr), $right - $left - strlen($leftStr));
     }
 }
