@@ -14,6 +14,9 @@ use Ibazhe\Cookies\CookiesManager;
 class Curl
 {
     protected $url;
+    /**
+     * @var $request_headers array  [[name=>a,value=b],[name=>a,value=b]]
+     */
     protected $request_headers = array();
     protected $response_headers;
     protected $response_headers_arr = array();
@@ -138,7 +141,7 @@ class Curl
      */
     public function setRequestHeader($name, $value) {
         foreach ($this->request_headers as $k => $v) {
-            if (CookiesManager::equal($k, $name)) {
+            if (CookiesManager::equal($v['name'], $name)) {
                 unset($this->request_headers[$k]);
             }
         }
@@ -154,7 +157,7 @@ class Curl
     public function setRequestHeaders($headers) {
         foreach ($headers as $header) {
             $arr = explode(':', $header);
-            if (count($headers) == 2) {
+            if (count($arr) == 2) {
                 $this->setRequestHeader($arr[0], $arr[1]);
             }
         }
