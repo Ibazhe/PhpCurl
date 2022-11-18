@@ -206,8 +206,9 @@ class Curl
         if ($cookies) {
             $this->setRequestHeader('Cookie', $cookies);
         }
-        if (count($this->request_headers) > 0) {
-            curl_setopt($this->ch, CURLOPT_HTTPHEADER, $this->request_headers);
+        $headers = $this->buildRequestHeadersArray();
+        if (count($headers) > 0) {
+            curl_setopt($this->ch, CURLOPT_HTTPHEADER, $headers);
         }
         if (!empty($this->proxy)) {
             curl_setopt($this->ch, CURLOPT_PROXY, $this->proxy); //代理服务器地址
