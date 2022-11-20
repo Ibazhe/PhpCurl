@@ -13,36 +13,180 @@ use Ibazhe\Cookies\CookiesManager;
 
 class Curl
 {
-    protected $url;
     /**
-     * @var $request_headers array  [[name=>a,value=b],[name=>a,value=b]]
+     * CURL句柄
+     * @var $ch resource
      */
-    protected $request_headers = array();
-    protected $response_headers;
-    protected $response_headers_arr = array();
-    protected $response_body;
-    protected $timeout = 10;
-    protected $fake_ip;
-    protected $proxy;
     protected $ch;
+
+    /**
+     * @var $redirect_max_num int  重定向上限
+     */
     protected $redirect_max_num = 0;
+
+    /**
+     * @var $redirect_num int 当前请求已重定向次数
+     */
     protected $redirect_num = 0;
+
+    /**
+     * @var $ua string curl ua
+     */
     protected $ua;
+
+    /**
+     * @var $ssl_verify bool  是否开启ssl验证
+     */
+    protected $ssl_verify = false;
+
+    /**
+     * @var $http_version int HTTP版本
+     */
+    protected $http_version = 2;
+
+    /**
+     * @var $ip_resolve int 域名解析方式
+     */
+    protected $ip_resolve = 0;
+
+    /**
+     * @var $timeout int  请求超时时间
+     */
+    protected $timeout = 10;
+
+    /**
+     * @var $fake_ip string  请求伪造ip
+     */
+    protected $fake_ip;
+
+    /**
+     * @var $proxy string curl代理
+     */
+    protected $proxy;
+
+    /**
+     * @var $cookies CookiesManager
+     */
     public $cookies;
 
+    /**
+     * @var $remarks mixed 这个属性随意设置，相当于一个备注，在多线程中可以分配给他们一个唯一属性之类的
+     */
+    public $remarks;
 
+
+    /**
+     * 本次请求是否已经构造过curl句柄
+     * @var bool
+     */
+    protected $is_build_ch = false;
+
+    /**
+     * @var $url string 当前访问的URL
+     */
+    protected $url;
+
+    /**
+     * @var $post_data string 本次请求提交数据
+     */
+    protected $post_data;
+
+    /**
+     * @var $request_headers array  请求头数组 格式：array([name=>a,value=b],[name=>a,value=b])
+     */
+    protected $request_headers = array();
+    /**
+     * @var $response_headers string 返回头文本
+     */
+    protected $response_headers;
+    /**
+     * @var $response_headers_arr string 返回头数组 格式 array([name=>value])
+     */
+    protected $response_headers_arr = array();
+    /**
+     * @var $response_body string 返回的body
+     */
+    protected $response_body;
+
+
+    /**
+     * 静态实例化对象，为了实现链式调用
+     * @param $serialize_cookies string 序列化后的cookies，可空
+     */
+    public static function createInstance($serialize_cookies = '') {
+        return new static($serialize_cookies);
+    }
+
+    /**
+     * 实例化对象
+     * @param $serialize_cookies string 序列化后的cookies，可空
+     */
     public function __construct($serialize_cookies = '') {
         $this->cookies = new CookiesManager($serialize_cookies);
+    }
+
+    /**
+     * 这个属性随意设置，相当于一个备注，在多线程中可以分配给他们一个唯一属性之类的
+     * @param $remarks
+     * @return $this
+     */
+    public function setRemarks($remarks) {
+        $this->remarks = $remarks;
         return $this;
     }
 
     /**
-     * 开启自动重定向
+     * 设置解析方式
+     * @param $value int 4为仅解析IPV4,6为仅解析IPV6，0为无所谓。默认为0
+     * @return $this|false
+     */
+    public function setIpResolve($value = 0) {
+        if ($value == 0) {
+            $this->ip_resolve = CURL_IPRESOLVE_WHATEVER;
+        } elseif ($value == 4) {
+            $this->ip_resolve = CURL_IPRESOLVE_V4;
+        } elseif ($value == 6) {
+            $this->ip_resolve = CURL_IPRESOLVE_V6;
+        } else {
+            return false;
+        }
+        return $this;
+    }
+
+    /**
+     * 设置HTTP版本
+     * @param $version string 有1.0,1.1,2.0
+     * @return $this|false
+     */
+    public function setHttpVersion($version = '1.0') {
+        if ($version == '1.0') {
+            $this->http_version = CURL_HTTP_VERSION_1_0;
+        } elseif ($version == '1.1') {
+            $this->http_version = CURL_HTTP_VERSION_1_1;
+        } elseif ($version == '2.0') {
+            $this->http_version = CURL_HTTP_VERSION_2_0;
+        } else {
+            return false;
+        }
+        return $this;
+    }
+
+    /**
+     * 开启自动重定向，一旦设置，一直有效
      * @param $num int 最大连续重定向次数，0则禁止重定向,默认20
      * @return void
      */
     public function setRedirect($num = 20) {
         $this->redirect_max_num = $num;
+    }
+
+    /**
+     * 开关ssl验证，默认为关闭，一旦设置，一直有效
+     * @param $bool
+     * @return void
+     */
+    public function setSSLVerify($bool = true) {
+        $this->ssl_verify = $bool;
     }
 
     /**
@@ -60,7 +204,7 @@ class Curl
     }
 
     /**
-     * 设置代理IP，为空则取消代理
+     * 设置代理IP，为空则取消代理，一旦设置，一直有效
      * @param $proxy
      * @return $this
      */
@@ -70,7 +214,7 @@ class Curl
     }
 
     /**
-     * 设置超时时间
+     * 设置超时时间，一旦设置，一直有效
      * @param $time
      * @return $this
      */
@@ -80,7 +224,7 @@ class Curl
     }
 
     /**
-     * 设置后一直有效
+     * 设置UA，一旦设置，一直有效
      * @param $value
      * @return $this
      */
@@ -101,6 +245,8 @@ class Curl
         $this->response_headers_arr = array();
         $this->request_headers      = array();
         $this->response_body        = '';
+        $this->post_data            = '';
+        $this->is_build_ch          = false;
         //重置
         $this->url = $url;
         $this->ch  = curl_init();
@@ -134,7 +280,7 @@ class Curl
     }
 
     /**
-     * 设置本次请求头
+     * 设置本次请求头，open后用，再次open后上一次的设置失效
      * @param $name
      * @param $value
      * @return $this
@@ -145,12 +291,12 @@ class Curl
                 unset($this->request_headers[$k]);
             }
         }
-        $this->request_headers[] = ['name' => trim($name), 'value' => trim($value)];
+        $this->request_headers[] = array('name' => trim($name), 'value' => trim($value));
         return $this;
     }
 
     /**
-     * 批量添加headers
+     * 批量添加headers，open后用，再次open后上一次的设置失效
      * @param $headers array 每个数组都是一条header name: value
      * @return $this
      */
@@ -164,73 +310,152 @@ class Curl
         return $this;
     }
 
+    /**
+     * open后用，再次open后上一次的设置失效
+     * @param $value
+     * @return $this
+     */
     public function setAccept($value = '*/*') {
         $this->setRequestHeader('Accept', $value);
         return $this;
     }
 
+    /**
+     * open后用，再次open后上一次的设置失效
+     * @param $value
+     * @return $this
+     */
     public function setAcceptLanguage($value = 'zh-cn') {
         $this->setRequestHeader('Accept-Language', $value);
         return $this;
     }
 
+    /**
+     * open后用，再次open后上一次的设置失效
+     * @param $value
+     * @return $this
+     */
     public function setContentType($value = 'application/x-www-form-urlencoded ') {
         $this->setRequestHeader('Content-Type', $value);
         return $this;
     }
 
-
+    /**
+     * open后用，再次open后上一次的设置失效
+     * @param $value
+     * @return $this
+     */
     public function setReferer($value = '') {
         $this->setRequestHeader('Referer', $value);
         return $this;
     }
 
+    /**
+     * open后用，再次open后上一次的设置失效
+     * @param $value
+     * @return $this
+     */
     public function setOrigin($value = '') {
         $this->setRequestHeader('Origin', $value);
         return $this;
     }
 
+    /**
+     * open后用，再次open后上一次的设置失效
+     * @return $this
+     */
     public function setXMLHttpRequest() {
         $this->setRequestHeader('X-Requested-With', 'XMLHttpRequest');
         return $this;
     }
 
     /**
+     * open后用，再次open后上一次的设置失效
+     * @param $post_data string|string[]
+     * @return $this
+     */
+    public function setPostData($post_data) {
+        $this->post_data = $post_data;
+        return $this;
+    }
+
+    /**
+     * 设置并获取curl句柄，仅可设置1次，主要用于多线程里
+     * @return resource|bool
+     * @throws Exception
+     */
+    protected function buildCurlHandle() {
+        if (!$this->is_build_ch) {
+            if ($this->ua) {
+                $this->setRequestHeader('User-Agent', $this->ua);
+            }
+            $cookies = $this->cookies->getCookies($this->url);
+            if ($cookies) {
+                $this->setRequestHeader('Cookie', $cookies);
+            }
+            $headers = $this->buildRequestHeadersArray();
+            if (count($headers) > 0) {
+                curl_setopt($this->ch, CURLOPT_HTTPHEADER, $headers);
+            }
+            if (!empty($this->proxy)) {
+                curl_setopt($this->ch, CURLOPT_PROXY, $this->proxy); //代理服务器地址
+            }
+            $post = $this->post_data;
+            if (!empty($post)) {
+                if (is_array($post)) {
+                    $post = http_build_query($post);
+                }
+                curl_setopt($this->ch, CURLOPT_POSTFIELDS, $post);
+            }
+            curl_setopt($this->ch, CURLOPT_SSL_VERIFYPEER, $this->ssl_verify);
+            curl_setopt($this->ch, CURLOPT_SSL_VERIFYHOST, $this->ssl_verify);
+            curl_setopt($this->ch, CURLOPT_HTTP_VERSION, $this->http_version);
+            curl_setopt($this->ch, CURLOPT_IPRESOLVE, $this->ip_resolve);
+            curl_setopt($this->ch, CURLOPT_TIMEOUT, $this->timeout);
+            curl_setopt($this->ch, CURLOPT_HEADER, TRUE);
+            curl_setopt($this->ch, CURLOPT_ENCODING, "gzip");
+            curl_setopt($this->ch, CURLOPT_RETURNTRANSFER, 1);
+            $this->is_build_ch = true;
+            return $this->ch;
+        } else {
+            return false;
+        }
+
+    }
+
+    /**
+     * 获取CURL句柄
+     * @return resource
+     * @throws Exception
+     */
+    public function getCurlHandle() {
+        if (!$this->is_build_ch) {
+            $this->buildCurlHandle();
+        }
+        return $this->ch;
+    }
+
+
+    /**
      * 发送请求
-     * @param $post string|string[]
      * @return $this
      * @throws Exception
      */
-    public function send($post = '') {
-        if ($this->ua) {
-            $this->setRequestHeader('User-Agent', $this->ua);
-        }
-        $cookies = $this->cookies->getCookies($this->url);
-        if ($cookies) {
-            $this->setRequestHeader('Cookie', $cookies);
-        }
-        $headers = $this->buildRequestHeadersArray();
-        if (count($headers) > 0) {
-            curl_setopt($this->ch, CURLOPT_HTTPHEADER, $headers);
-        }
-        if (!empty($this->proxy)) {
-            curl_setopt($this->ch, CURLOPT_PROXY, $this->proxy); //代理服务器地址
-        }
-        if (!empty($post)) {
-            if (is_array($post)) {
-                $post = http_build_query($post);
-            }
-            curl_setopt($this->ch, CURLOPT_POSTFIELDS, $post);
-        }
-        curl_setopt($this->ch, CURLOPT_SSL_VERIFYPEER, FALSE);
-        curl_setopt($this->ch, CURLOPT_SSL_VERIFYHOST, FALSE);
-        curl_setopt($this->ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
-        curl_setopt($this->ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
-        curl_setopt($this->ch, CURLOPT_TIMEOUT, $this->timeout);
-        curl_setopt($this->ch, CURLOPT_HEADER, TRUE);
-        curl_setopt($this->ch, CURLOPT_ENCODING, "gzip");
-        curl_setopt($this->ch, CURLOPT_RETURNTRANSFER, 1);
-        $ret        = curl_exec($this->ch);
+    public function send() {
+        //在这用这个buildCurlHandle命名不太恰当，但是正好实现相应的功能了，不要在意那些细节
+        $this->buildCurlHandle();
+        $ret = curl_exec($this->ch);
+        return $this->finishCh($ret);
+
+    }
+
+    /**
+     * 解析返回信息并关闭句柄，多线程里内部用的
+     * @param $ret string curl返回的原始数据
+     * @return $this
+     * @throws Exception
+     */
+    public function finishCh($ret) {
         $headerSize = curl_getinfo($this->ch, CURLINFO_HEADER_SIZE);
         curl_close($this->ch);
         $this->response_headers = substr($ret, 0, $headerSize);
@@ -274,7 +499,7 @@ class Curl
 
     /**
      * 获取返回信息
-     * @return mixed
+     * @return string
      */
     public function getResponseBody() {
         return $this->response_body;
