@@ -45,9 +45,19 @@ class Curl
     protected $http_version = 2;
 
     /**
-     * @var $ip_resolve int 域名解析方式
+     * @var $resolve_mode int 域名解析方式
      */
-    protected $ip_resolve = 0;
+    protected $resolve_mode = 0;
+
+    /**
+     * @var $resolve array 不使用DNS解析的域名，类似于hosts
+     */
+    protected $resolve = array();
+
+    /**
+     * @var $encoding string HTTP请求头中"Accept-Encoding: "的值。 这使得能够解码响应的内容。 支持的编码有"identity"，"deflate"和"gzip"。如果为空字符串""，会发送所有支持的编码类型。
+     */
+    protected $encoding = 'gzip';
 
     /**
      * @var $timeout int  请求超时时间
@@ -82,9 +92,14 @@ class Curl
     protected $is_build_ch = false;
 
     /**
-     * @var $url string 当前访问的URL
+     * @var $url string 本次请求的URL
      */
     protected $url;
+
+    /**
+     * @var $method string 本次请求方式
+     */
+    protected $method;
 
     /**
      * @var $post_data string 本次请求提交数据
@@ -136,17 +151,42 @@ class Curl
     }
 
     /**
-     * 设置解析方式
+     * 设定HTTP请求头中"Accept-Encoding: "的值，默认gzip。这使得能够解码响应的内容。 支持的编码有"identity"，"deflate"和"gzip"。如果为空字符串""，会发送所有支持的编码类型。
+     * @param $encoding 'gzip','deflate','identity'
+     * @return $this|false
+     */
+    public function setEncoding($encoding = 'gzip') {
+        if (in_array($encoding, array('gzip', 'deflate', 'identity', ''))) {
+            $this->encoding = $encoding;
+            return $this;
+        }
+        return false;
+    }
+
+    /**
+     * 设定指定域名的主机地址，类似于hosts，一旦设置，一直有效
+     * @param $domain string 域名
+     * @param $ip     string 主机地址
+     * @param $port   string 主机端口 默认80，提示：有https的是 443 端口
+     * @return $this
+     */
+    public function setResolve($domain, $ip, $port = '80') {
+        $this->resolve = array("$domain:$port:$ip");
+        return $this;
+    }
+
+    /**
+     * 设置解析模式，一旦设置，一直有效
      * @param $value int 4为仅解析IPV4,6为仅解析IPV6，0为无所谓。默认为0
      * @return $this|false
      */
-    public function setIpResolve($value = 0) {
+    public function setResolveMode($value = 0) {
         if ($value == 0) {
-            $this->ip_resolve = CURL_IPRESOLVE_WHATEVER;
+            $this->resolve_mode = CURL_IPRESOLVE_WHATEVER;
         } elseif ($value == 4) {
-            $this->ip_resolve = CURL_IPRESOLVE_V4;
+            $this->resolve_mode = CURL_IPRESOLVE_V4;
         } elseif ($value == 6) {
-            $this->ip_resolve = CURL_IPRESOLVE_V6;
+            $this->resolve_mode = CURL_IPRESOLVE_V6;
         } else {
             return false;
         }
@@ -154,7 +194,7 @@ class Curl
     }
 
     /**
-     * 设置HTTP版本
+     * 设置HTTP版本，一旦设置，一直有效
      * @param $version string 有1.0,1.1,2.0
      * @return $this|false
      */
@@ -248,10 +288,8 @@ class Curl
         $this->post_data            = '';
         $this->is_build_ch          = false;
         //重置
-        $this->url = $url;
-        $this->ch  = curl_init();
-        curl_setopt($this->ch, CURLOPT_URL, $this->url);
-        curl_setopt($this->ch, CURLOPT_CUSTOMREQUEST, $method);
+        $this->url    = $url;
+        $this->method = $method;
         if (!empty($this->fake_ip)) {
             $this->request_headers[] = "X-Forwarded-For: " . $this->fake_ip;
             $this->request_headers[] = "X-Originating-IP: " . $this->fake_ip;
@@ -386,6 +424,9 @@ class Curl
      */
     protected function buildCurlHandle() {
         if (!$this->is_build_ch) {
+            $this->ch = curl_init();
+            curl_setopt($this->ch, CURLOPT_URL, $this->url);
+            curl_setopt($this->ch, CURLOPT_CUSTOMREQUEST, $this->method);
             if ($this->ua) {
                 $this->setRequestHeader('User-Agent', $this->ua);
             }
@@ -407,13 +448,14 @@ class Curl
                 }
                 curl_setopt($this->ch, CURLOPT_POSTFIELDS, $post);
             }
+            curl_setopt($this->ch, CURLOPT_RESOLVE, $this->resolve);
             curl_setopt($this->ch, CURLOPT_SSL_VERIFYPEER, $this->ssl_verify);
             curl_setopt($this->ch, CURLOPT_SSL_VERIFYHOST, $this->ssl_verify);
             curl_setopt($this->ch, CURLOPT_HTTP_VERSION, $this->http_version);
-            curl_setopt($this->ch, CURLOPT_IPRESOLVE, $this->ip_resolve);
+            curl_setopt($this->ch, CURLOPT_IPRESOLVE, $this->resolve_mode);
             curl_setopt($this->ch, CURLOPT_TIMEOUT, $this->timeout);
             curl_setopt($this->ch, CURLOPT_HEADER, TRUE);
-            curl_setopt($this->ch, CURLOPT_ENCODING, "gzip");
+            curl_setopt($this->ch, CURLOPT_ENCODING, $this->encoding);
             curl_setopt($this->ch, CURLOPT_RETURNTRANSFER, 1);
             $this->is_build_ch = true;
             return $this->ch;
