@@ -10,9 +10,10 @@ require "../vendor/autoload.php";
 
 
 $curl = new curl();
-//$curl->setProxy('127.0.0.1:8888');
-$curl->setResolve('www.baidu.com','127.0.0.1','80');
-$curl->open("GET","http://www.baidu.com/123asdasd");
+$curl->setProxy('127.0.0.1:8888');
+//$curl->setResolve('www.baidu.com','127.0.0.1','80');
+//$curl->setSSLVerify();
+$curl->open("GET","https://www.baidu.com/123asdasd");
 $curl->setXMLHttpRequest();
 $curl->send();
 var_dump($curl->getResponseBody());

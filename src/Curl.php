@@ -454,7 +454,6 @@ class Curl
             }
             curl_setopt($this->ch, CURLOPT_RESOLVE, $this->resolve);
             curl_setopt($this->ch, CURLOPT_SSL_VERIFYPEER, $this->ssl_verify);
-            curl_setopt($this->ch, CURLOPT_SSL_VERIFYHOST, $this->ssl_verify);
             curl_setopt($this->ch, CURLOPT_HTTP_VERSION, $this->http_version);
             curl_setopt($this->ch, CURLOPT_IPRESOLVE, $this->resolve_mode);
             curl_setopt($this->ch, CURLOPT_TIMEOUT, $this->timeout);
