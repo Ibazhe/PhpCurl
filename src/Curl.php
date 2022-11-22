@@ -122,6 +122,10 @@ class Curl
      * @var $response_body string 返回的body
      */
     protected $response_body;
+    /**
+     * @var $response_http_code int 返回的http代码
+     */
+    protected $response_http_code;
 
 
     /**
@@ -498,10 +502,11 @@ class Curl
      * @throws Exception
      */
     public function finishCh($ret) {
-        $headerSize = curl_getinfo($this->ch, CURLINFO_HEADER_SIZE);
+        $header_size = curl_getinfo($this->ch, CURLINFO_HEADER_SIZE);
+        $this->response_http_code = curl_getinfo($this->ch, CURLINFO_HTTP_CODE);
         curl_close($this->ch);
-        $this->response_headers = substr($ret, 0, $headerSize);
-        $this->response_body    = substr($ret, $headerSize);
+        $this->response_headers = substr($ret, 0, $header_size);
+        $this->response_body    = substr($ret, $header_size);
         $this->cookies->upH($this->response_headers, $this->url);
         if ($this->redirect_num < $this->redirect_max_num) {
             $this->redirect_num++;
@@ -545,6 +550,14 @@ class Curl
      */
     public function getResponseBody() {
         return $this->response_body;
+    }
+
+    /**
+     * 获取返回的http代码
+     * @return int
+     */
+    public function getResponseHttpCode(){
+        return $this->response_http_code;
     }
 
     /**
