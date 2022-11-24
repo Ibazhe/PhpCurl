@@ -301,16 +301,16 @@ class Curl
         $this->url    = $url;
         $this->method = $method;
         if (!empty($this->fake_ip)) {
-            $this->request_headers[] = "X-Forwarded-For: " . $this->fake_ip;
-            $this->request_headers[] = "X-Originating-IP: " . $this->fake_ip;
-            $this->request_headers[] = "X-Remote-IP: " . $this->fake_ip;
-            $this->request_headers[] = "X-Remote-Addr: " . $this->fake_ip;
-            $this->request_headers[] = "X-Client-IP: " . $this->fake_ip;
-            $this->request_headers[] = "Forwarded-For: " . $this->fake_ip;
-            $this->request_headers[] = "Originating-IP: " . $this->fake_ip;
-            $this->request_headers[] = "Remote-IP: " . $this->fake_ip;
-            $this->request_headers[] = "Remote-Addr: " . $this->fake_ip;
-            $this->request_headers[] = "Client-IP: " . $this->fake_ip;
+            $this->setRequestHeader("X-Forwarded-For: ", $this->fake_ip);
+            $this->setRequestHeader("X-Originating-IP: ", $this->fake_ip);
+            $this->setRequestHeader("X-Remote-IP: ", $this->fake_ip);
+            $this->setRequestHeader("X-Remote-Addr: ", $this->fake_ip);
+            $this->setRequestHeader("X-Client-IP: ", $this->fake_ip);
+            $this->setRequestHeader("Forwarded-For: ", $this->fake_ip);
+            $this->setRequestHeader("Originating-IP: ", $this->fake_ip);
+            $this->setRequestHeader("Remote-IP: ", $this->fake_ip);
+            $this->setRequestHeader("Remote-Addr: ", $this->fake_ip);
+            $this->setRequestHeader("Client-IP: ", $this->fake_ip);
         }
         return $this;
     }
@@ -574,6 +574,10 @@ class Curl
         return false;
     }
 
+    /**
+     * 获取原生返回信息，包含头
+     * @return string
+     */
     public function getResponseRaw() {
         return $this->response_raw;
     }
