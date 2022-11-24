@@ -501,7 +501,7 @@ class Curl
      * @throws Exception
      */
     public function finishCh($ret) {
-        $header_size = curl_getinfo($this->ch, CURLINFO_HEADER_SIZE);
+        $header_size              = curl_getinfo($this->ch, CURLINFO_HEADER_SIZE);
         $this->response_http_code = curl_getinfo($this->ch, CURLINFO_HTTP_CODE);
         curl_close($this->ch);
         $this->response_headers = substr($ret, 0, $header_size);
@@ -514,6 +514,30 @@ class Curl
         }
         $this->redirect_num = 0;//已经跳转的次数归0
         return $this;
+    }
+
+    /**
+     * 获取本次访问的方式
+     * @return string
+     */
+    public function getMethod() {
+        return $this->method;
+    }
+
+    /**
+     * 获取本次访问的url
+     * @return string
+     */
+    public function getUrl() {
+        return $this->url;
+    }
+
+    /**
+     * 获取本次访问的postdata
+     * @return string
+     */
+    public function getPostData() {
+        return $this->post_data;
     }
 
     /**
@@ -555,7 +579,7 @@ class Curl
      * 获取返回的http代码
      * @return int
      */
-    public function getResponseHttpCode(){
+    public function getResponseHttpCode() {
         return $this->response_http_code;
     }
 
