@@ -110,6 +110,12 @@ class Curl
      * @var $request_headers array  请求头数组 格式：array([name=>a,value=b],[name=>a,value=b])
      */
     protected $request_headers = array();
+
+
+    /**
+     * @var $response_raw string 原生返回，包含头
+     */
+    protected $response_raw;
     /**
      * @var $response_headers string 返回头文本
      */
@@ -501,11 +507,12 @@ class Curl
      * @throws Exception
      */
     public function finishCh($ret) {
+        $this->response_raw       = $ret;
         $header_size              = curl_getinfo($this->ch, CURLINFO_HEADER_SIZE);
         $this->response_http_code = curl_getinfo($this->ch, CURLINFO_HTTP_CODE);
         curl_close($this->ch);
-        $this->response_headers = substr($ret, 0, $header_size);
-        $this->response_body    = substr($ret, $header_size);
+        $this->response_headers = substr($this->response_raw, 0, $header_size);
+        $this->response_body    = substr($this->response_raw, $header_size);
         $this->cookies->upH($this->response_headers, $this->url);
         if ($this->redirect_num < $this->redirect_max_num) {
             $this->redirect_num++;
@@ -565,6 +572,10 @@ class Curl
             }
         }
         return false;
+    }
+
+    public function getResponseRaw() {
+        return $this->response_raw;
     }
 
     /**
