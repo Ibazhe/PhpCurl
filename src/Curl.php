@@ -117,6 +117,10 @@ class Curl
      */
     protected $response_raw;
     /**
+     * @var $request_header string 原生请求头
+     */
+    protected $request_header;
+    /**
      * @var $response_headers string 返回头文本
      */
     protected $response_headers;
@@ -423,7 +427,12 @@ class Curl
      * @return $this
      */
     public function setPostData($post_data) {
-        $this->post_data = $post_data;
+        if (!empty($post_data)) {
+            if (is_array($post_data)) {
+                $post_data = http_build_query($post_data);
+            }
+            $this->post_data = $post_data;
+        }
         return $this;
     }
 
@@ -451,12 +460,8 @@ class Curl
             if (!empty($this->proxy)) {
                 curl_setopt($this->ch, CURLOPT_PROXY, $this->proxy); //代理服务器地址
             }
-            $post = $this->post_data;
-            if (!empty($post)) {
-                if (is_array($post)) {
-                    $post = http_build_query($post);
-                }
-                curl_setopt($this->ch, CURLOPT_POSTFIELDS, $post);
+            if (!empty($this->post_data)) {
+                curl_setopt($this->ch, CURLOPT_POSTFIELDS, $this->post_data);
             }
             curl_setopt($this->ch, CURLOPT_RESOLVE, $this->resolve);
             curl_setopt($this->ch, CURLOPT_SSL_VERIFYPEER, $this->ssl_verify);
@@ -466,6 +471,7 @@ class Curl
             curl_setopt($this->ch, CURLOPT_HEADER, TRUE);
             curl_setopt($this->ch, CURLOPT_ENCODING, $this->encoding);
             curl_setopt($this->ch, CURLOPT_RETURNTRANSFER, 1);
+            curl_setopt($this->ch, CURLINFO_HEADER_OUT, true);
             $this->is_build_ch = true;
             return $this->ch;
         } else {
@@ -508,6 +514,7 @@ class Curl
      */
     public function finishCh($ret) {
         $this->response_raw       = $ret;
+        $this->request_header        = curl_getinfo($this->ch, CURLINFO_HEADER_OUT);
         $header_size              = curl_getinfo($this->ch, CURLINFO_HEADER_SIZE);
         $this->response_http_code = curl_getinfo($this->ch, CURLINFO_HTTP_CODE);
         curl_close($this->ch);
@@ -580,6 +587,10 @@ class Curl
      */
     public function getResponseRaw() {
         return $this->response_raw;
+    }
+
+    public function getRequestHeader() {
+        return $this->request_header;
     }
 
     /**
