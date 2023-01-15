@@ -305,16 +305,16 @@ class Curl
         $this->url    = $url;
         $this->method = $method;
         if (!empty($this->fake_ip)) {
-            $this->setRequestHeader("X-Forwarded-For: ", $this->fake_ip);
-            $this->setRequestHeader("X-Originating-IP: ", $this->fake_ip);
-            $this->setRequestHeader("X-Remote-IP: ", $this->fake_ip);
-            $this->setRequestHeader("X-Remote-Addr: ", $this->fake_ip);
-            $this->setRequestHeader("X-Client-IP: ", $this->fake_ip);
-            $this->setRequestHeader("Forwarded-For: ", $this->fake_ip);
-            $this->setRequestHeader("Originating-IP: ", $this->fake_ip);
-            $this->setRequestHeader("Remote-IP: ", $this->fake_ip);
-            $this->setRequestHeader("Remote-Addr: ", $this->fake_ip);
-            $this->setRequestHeader("Client-IP: ", $this->fake_ip);
+            $this->setRequestHeader("X-Forwarded-For", $this->fake_ip);
+            $this->setRequestHeader("X-Originating-IP", $this->fake_ip);
+            $this->setRequestHeader("X-Remote-IP", $this->fake_ip);
+            $this->setRequestHeader("X-Remote-Addr", $this->fake_ip);
+            $this->setRequestHeader("X-Client-IP", $this->fake_ip);
+            $this->setRequestHeader("Forwarded-For", $this->fake_ip);
+            $this->setRequestHeader("Originating-IP", $this->fake_ip);
+            $this->setRequestHeader("Remote-IP", $this->fake_ip);
+            $this->setRequestHeader("Remote-Addr", $this->fake_ip);
+            $this->setRequestHeader("Client-IP", $this->fake_ip);
         }
         return $this;
     }
