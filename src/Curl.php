@@ -339,7 +339,7 @@ class Curl
      */
     public function setRequestHeader($name, $value) {
         foreach ($this->request_headers as $k => $v) {
-            if (equal($v['name'], $name)) {
+            if (CookiesManager::equal($v['name'], $name)) {
                 unset($this->request_headers[$k]);
             }
         }
@@ -423,16 +423,11 @@ class Curl
 
     /**
      * open后用，再次open后上一次的设置失效
-     * @param $post_data string|string[]
+     * @param $post_data string|array
      * @return $this
      */
     public function setPostData($post_data) {
-        if (!empty($post_data)) {
-            if (is_array($post_data)) {
-                $post_data = http_build_query($post_data);
-            }
-            $this->post_data = $post_data;
-        }
+        $this->post_data = $post_data;
         return $this;
     }
 
