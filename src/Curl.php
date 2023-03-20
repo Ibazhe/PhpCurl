@@ -339,7 +339,7 @@ class Curl
      */
     public function setRequestHeader($name, $value) {
         foreach ($this->request_headers as $k => $v) {
-            if (CookiesManager::equal($v['name'], $name)) {
+            if (equal($v['name'], $name)) {
                 unset($this->request_headers[$k]);
             }
         }
