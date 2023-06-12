@@ -518,9 +518,12 @@ class Curl
         $this->response_body    = substr($this->response_raw, $header_size);
         $this->cookies->upH($this->response_headers, $this->url);
         if ($this->redirect_num < $this->redirect_max_num) {
-            $this->redirect_num++;
             $location = $this->getResponseHeader('location');
-            $this->open('GET', $location)->send();
+            if($location){
+                $this->redirect_num++;
+                $this->open('GET', $location)->send();
+            }
+
         }
         $this->redirect_num = 0;//已经跳转的次数归0
         return $this;
