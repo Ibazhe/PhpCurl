@@ -556,7 +556,7 @@ class Curl
             if ($location) {
                 $this->redirect_num++;
                 if ($location[0] == '/') {
-                    $location = $this->url_parse['scheme'] . '://' . $location;
+                    $location = $this->url_parse['scheme'] . '://' . $this->url_parse['domain'].$location;
                 }
                 $this->open('GET', $location)->send();
             }
