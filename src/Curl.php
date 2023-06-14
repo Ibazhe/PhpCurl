@@ -97,6 +97,11 @@ class Curl
     protected $url;
 
     /**
+     * @var $url_parse array 本次请求的URL的解析
+     */
+    protected $url_parse;
+
+    /**
      * @var $method string 本次请求方式
      */
     protected $method;
@@ -142,7 +147,8 @@ class Curl
      * 静态实例化对象，为了实现链式调用
      * @param $serialize_cookies string 序列化后的cookies，可空
      */
-    public static function createInstance($serialize_cookies = '') {
+    public static function createInstance($serialize_cookies = '')
+    {
         return new static($serialize_cookies);
     }
 
@@ -150,7 +156,8 @@ class Curl
      * 实例化对象
      * @param $serialize_cookies string 序列化后的cookies，可空
      */
-    public function __construct($serialize_cookies = '') {
+    public function __construct($serialize_cookies = '')
+    {
         $this->cookies = new CookiesManager($serialize_cookies);
     }
 
@@ -159,7 +166,8 @@ class Curl
      * @param $remarks
      * @return $this
      */
-    public function setRemarks($remarks) {
+    public function setRemarks($remarks)
+    {
         $this->remarks = $remarks;
         return $this;
     }
@@ -169,7 +177,8 @@ class Curl
      * @param $encoding 'gzip','deflate','identity'
      * @return $this|false
      */
-    public function setEncoding($encoding = 'gzip') {
+    public function setEncoding($encoding = 'gzip')
+    {
         if (in_array($encoding, array('gzip', 'deflate', 'identity', ''))) {
             $this->encoding = $encoding;
             return $this;
@@ -184,7 +193,8 @@ class Curl
      * @param $port   string 主机端口 默认80，提示：有https的是 443 端口
      * @return $this
      */
-    public function setResolve($domain, $ip, $port = '80') {
+    public function setResolve($domain, $ip, $port = '80')
+    {
         $this->resolve = array("$domain:$port:$ip");
         return $this;
     }
@@ -194,7 +204,8 @@ class Curl
      * @param $value int 4为仅解析IPV4,6为仅解析IPV6，0为无所谓。默认为0
      * @return $this|false
      */
-    public function setResolveMode($value = 0) {
+    public function setResolveMode($value = 0)
+    {
         if ($value == 0) {
             $this->resolve_mode = CURL_IPRESOLVE_WHATEVER;
         } elseif ($value == 4) {
@@ -212,7 +223,8 @@ class Curl
      * @param $version string 有1.0,1.1,2.0
      * @return $this|false
      */
-    public function setHttpVersion($version = '1.0') {
+    public function setHttpVersion($version = '1.0')
+    {
         if ($version == '1.0') {
             $this->http_version = CURL_HTTP_VERSION_1_0;
         } elseif ($version == '1.1') {
@@ -230,7 +242,8 @@ class Curl
      * @param $num int 最大连续重定向次数，0则禁止重定向,默认20
      * @return void
      */
-    public function setRedirect($num = 20) {
+    public function setRedirect($num = 20)
+    {
         $this->redirect_max_num = $num;
     }
 
@@ -239,7 +252,8 @@ class Curl
      * @param $bool
      * @return void
      */
-    public function setSSLVerify($bool = true) {
+    public function setSSLVerify($bool = true)
+    {
         $this->ssl_verify = $bool;
     }
 
@@ -248,7 +262,8 @@ class Curl
      * @param String $ip 空则随机获取一个
      * @return $this
      */
-    public function setFakeIp($ip = "") {
+    public function setFakeIp($ip = "")
+    {
         if ($ip === "") {
             $this->fake_ip = long2ip(mt_rand("607649792", "2079064063"));
         } else {
@@ -262,7 +277,8 @@ class Curl
      * @param $proxy
      * @return $this
      */
-    public function setProxy($proxy = '') {
+    public function setProxy($proxy = '')
+    {
         $this->proxy = $proxy;
         return $this;
     }
@@ -272,7 +288,8 @@ class Curl
      * @param $time
      * @return $this
      */
-    public function setTimeOut($time) {
+    public function setTimeOut($time)
+    {
         $this->timeout = $time;
         return $this;
     }
@@ -282,7 +299,8 @@ class Curl
      * @param $value
      * @return $this
      */
-    public function setUserAgent($value = 'Mozilla/5.0 (compatible; MSIE 10.0; Windows NT 6.2)') {
+    public function setUserAgent($value = 'Mozilla/5.0 (compatible; MSIE 10.0; Windows NT 6.2)')
+    {
         $this->ua = $value;
         return $this;
     }
@@ -294,13 +312,15 @@ class Curl
      * @return $this
      * @throws Exception
      */
-    public function open($method, $url) {
+    public function open($method, $url)
+    {
         CookiesManager::checkUrl($url);
         $this->response_headers_arr = array();
         $this->request_headers      = array();
         $this->response_body        = '';
         $this->post_data            = '';
         $this->is_build_ch          = false;
+        $this->url_parse            = parse_url($url);
         //重置
         $this->url    = $url;
         $this->method = $method;
@@ -323,7 +343,8 @@ class Curl
      * 类内部自用的，CURLOPT_HTTPHEADER的时候用
      * @return array
      */
-    protected function buildRequestHeadersArray() {
+    protected function buildRequestHeadersArray()
+    {
         $arr = array();
         foreach ($this->request_headers as $header) {
             $arr[] = $header['name'] . ': ' . $header['value'];
@@ -337,7 +358,8 @@ class Curl
      * @param $value
      * @return $this
      */
-    public function setRequestHeader($name, $value) {
+    public function setRequestHeader($name, $value)
+    {
         foreach ($this->request_headers as $k => $v) {
             if (equal($v['name'], $name)) {
                 unset($this->request_headers[$k]);
@@ -352,7 +374,8 @@ class Curl
      * @param $headers array 每个数组都是一条header name: value
      * @return $this
      */
-    public function setRequestHeaders($headers) {
+    public function setRequestHeaders($headers)
+    {
         foreach ($headers as $header) {
             $arr = explode(':', $header);
             if (count($arr) == 2) {
@@ -367,7 +390,8 @@ class Curl
      * @param $value
      * @return $this
      */
-    public function setAccept($value = '*/*') {
+    public function setAccept($value = '*/*')
+    {
         $this->setRequestHeader('Accept', $value);
         return $this;
     }
@@ -377,7 +401,8 @@ class Curl
      * @param $value
      * @return $this
      */
-    public function setAcceptLanguage($value = 'zh-cn') {
+    public function setAcceptLanguage($value = 'zh-cn')
+    {
         $this->setRequestHeader('Accept-Language', $value);
         return $this;
     }
@@ -387,7 +412,8 @@ class Curl
      * @param $value
      * @return $this
      */
-    public function setContentType($value = 'application/x-www-form-urlencoded ') {
+    public function setContentType($value = 'application/x-www-form-urlencoded ')
+    {
         $this->setRequestHeader('Content-Type', $value);
         return $this;
     }
@@ -397,7 +423,8 @@ class Curl
      * @param $value
      * @return $this
      */
-    public function setReferer($value = '') {
+    public function setReferer($value = '')
+    {
         $this->setRequestHeader('Referer', $value);
         return $this;
     }
@@ -407,7 +434,8 @@ class Curl
      * @param $value
      * @return $this
      */
-    public function setOrigin($value = '') {
+    public function setOrigin($value = '')
+    {
         $this->setRequestHeader('Origin', $value);
         return $this;
     }
@@ -416,7 +444,8 @@ class Curl
      * open后用，再次open后上一次的设置失效
      * @return $this
      */
-    public function setXMLHttpRequest() {
+    public function setXMLHttpRequest()
+    {
         $this->setRequestHeader('X-Requested-With', 'XMLHttpRequest');
         return $this;
     }
@@ -426,7 +455,8 @@ class Curl
      * @param $post_data string|array
      * @return $this
      */
-    public function setPostData($post_data) {
+    public function setPostData($post_data)
+    {
         $this->post_data = $post_data;
         return $this;
     }
@@ -436,7 +466,8 @@ class Curl
      * @return resource|bool
      * @throws Exception
      */
-    protected function buildCurlHandle() {
+    protected function buildCurlHandle()
+    {
         if (!$this->is_build_ch) {
             $this->ch = curl_init();
             curl_setopt($this->ch, CURLOPT_URL, $this->url);
@@ -481,7 +512,8 @@ class Curl
      * @return resource
      * @throws Exception
      */
-    public function getCurlHandle() {
+    public function getCurlHandle()
+    {
         if (!$this->is_build_ch) {
             $this->buildCurlHandle();
         }
@@ -494,7 +526,8 @@ class Curl
      * @return $this
      * @throws Exception
      */
-    public function send() {
+    public function send()
+    {
         //在这用这个buildCurlHandle命名不太恰当，但是正好实现相应的功能了，不要在意那些细节
         $this->buildCurlHandle();
         $ret = curl_exec($this->ch);
@@ -508,9 +541,10 @@ class Curl
      * @return $this
      * @throws Exception
      */
-    public function finishCh($ret) {
+    public function finishCh($ret)
+    {
         $this->response_raw       = $ret;
-        $this->request_header        = curl_getinfo($this->ch, CURLINFO_HEADER_OUT);
+        $this->request_header     = curl_getinfo($this->ch, CURLINFO_HEADER_OUT);
         $header_size              = curl_getinfo($this->ch, CURLINFO_HEADER_SIZE);
         $this->response_http_code = curl_getinfo($this->ch, CURLINFO_HTTP_CODE);
         curl_close($this->ch);
@@ -519,8 +553,11 @@ class Curl
         $this->cookies->upH($this->response_headers, $this->url);
         if ($this->redirect_num < $this->redirect_max_num) {
             $location = $this->getResponseHeader('location');
-            if($location){
+            if ($location) {
                 $this->redirect_num++;
+                if ($location[0] == '/') {
+                    $location = $this->url_parse['scheme'] . '://' . $location;
+                }
                 $this->open('GET', $location)->send();
             }
 
@@ -533,7 +570,8 @@ class Curl
      * 获取本次访问的方式
      * @return string
      */
-    public function getMethod() {
+    public function getMethod()
+    {
         return $this->method;
     }
 
@@ -541,7 +579,8 @@ class Curl
      * 获取本次访问的url
      * @return string
      */
-    public function getUrl() {
+    public function getUrl()
+    {
         return $this->url;
     }
 
@@ -549,7 +588,8 @@ class Curl
      * 获取本次访问的postdata
      * @return string
      */
-    public function getPostData() {
+    public function getPostData()
+    {
         return $this->post_data;
     }
 
@@ -558,7 +598,8 @@ class Curl
      * @param $name string 为空则获取全部header
      * @return array|mixed
      */
-    public function getResponseHeader($name = '') {
+    public function getResponseHeader($name = '')
+    {
         if ($name == '') {
             return $this->response_headers;
         }
@@ -584,11 +625,13 @@ class Curl
      * 获取原生返回信息，包含头
      * @return string
      */
-    public function getResponseRaw() {
+    public function getResponseRaw()
+    {
         return $this->response_raw;
     }
 
-    public function getRequestHeader() {
+    public function getRequestHeader()
+    {
         return $this->request_header;
     }
 
@@ -596,7 +639,8 @@ class Curl
      * 获取返回信息
      * @return string
      */
-    public function getResponseBody() {
+    public function getResponseBody()
+    {
         return $this->response_body;
     }
 
@@ -604,7 +648,8 @@ class Curl
      * 获取返回的http代码
      * @return int
      */
-    public function getResponseHttpCode() {
+    public function getResponseHttpCode()
+    {
         return $this->response_http_code;
     }
 
@@ -615,7 +660,8 @@ class Curl
      * @param $rightStr
      * @return false|string
      */
-    public static function getSubstr($str, $leftStr, $rightStr) {
+    public static function getSubstr($str, $leftStr, $rightStr)
+    {
         $left  = strpos($str, $leftStr);
         $right = strpos($str, $rightStr, $left);
         if ($left === false || $right === false) return false;
