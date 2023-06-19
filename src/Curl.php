@@ -555,12 +555,18 @@ class Curl
             $location = $this->getResponseHeader('location');
             if ($location) {
                 $this->redirect_num++;
-                if ($location[0] == '/') {
-                    $location = $this->url_parse['scheme'] . '://' . $this->url_parse['host'].$location;
+                if (substr($location, 0, 4) != 'http') {
+                    $new_url = $this->url_parse['scheme'] . '://' . $this->url_parse['host'];
+                    if ($location[0] == '/') {
+                        $new_url .= $location;
+                    } else {
+                        $new_url .= '/' . $location;
+                    }
+                } else {
+                    $new_url = $location;
                 }
-                $this->open('GET', $location)->send();
+                $this->open('GET', $new_url)->send();
             }
-
         }
         $this->redirect_num = 0;//已经跳转的次数归0
         return $this;
