@@ -142,7 +142,26 @@ class Curl
      */
     protected $response_http_code;
 
+    /**
+     * @var array curl句柄连接池
+     */
+    private static $pool = [];
 
+
+    private static function pool()
+    {
+        if (count(self::$pool) > 0) {
+            //var_dump('old');
+            // 从池中取出一个 cURL 句柄
+            $ch =  array_pop(self::$pool);
+            curl_reset($ch);
+            return $ch;
+        } else {
+            //var_dump('new');
+            // 如果池中没有可用的句柄，创建一个新的
+            return curl_init();
+        }
+    }
     /**
      * 静态实例化对象，为了实现链式调用
      * @param $serialize_cookies string 序列化后的cookies，可空
@@ -469,7 +488,7 @@ class Curl
     protected function buildCurlHandle()
     {
         if (!$this->is_build_ch) {
-            $this->ch = curl_init();
+            $this->ch = self::pool();
             curl_setopt($this->ch, CURLOPT_URL, $this->url);
             curl_setopt($this->ch, CURLOPT_CUSTOMREQUEST, $this->method);
             if ($this->ua) {
@@ -547,7 +566,8 @@ class Curl
         $this->request_header     = curl_getinfo($this->ch, CURLINFO_HEADER_OUT);
         $header_size              = curl_getinfo($this->ch, CURLINFO_HEADER_SIZE);
         $this->response_http_code = curl_getinfo($this->ch, CURLINFO_HTTP_CODE);
-        curl_close($this->ch);
+        //curl_close($this->ch);
+        self::$pool[] = $this->ch;
         $this->response_headers = substr($this->response_raw, 0, $header_size);
         $this->response_body    = substr($this->response_raw, $header_size);
         $this->cookies->upH($this->response_headers, $this->url);
