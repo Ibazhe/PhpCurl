@@ -73,6 +73,10 @@ class Curl
      * @var $proxy string curl代理
      */
     protected $proxy;
+    protected $proxy_user;
+    protected $proxy_pwd;
+
+
 
     /**
      * @var $cookies CookiesManager
@@ -300,9 +304,13 @@ class Curl
      * @param $proxy
      * @return $this
      */
-    public function setProxy($proxy = '')
+    public function setProxy($proxy = '',$username = '', $password = '')
     {
         $this->proxy = $proxy;
+        $this->proxy_user = $proxy_user;
+        $this->proxy_pwd = $proxy_pwd;
+
+
         return $this;
     }
 
@@ -508,6 +516,9 @@ class Curl
             }
             if (!empty($this->proxy)) {
                 curl_setopt($this->ch, CURLOPT_PROXY, $this->proxy); //代理服务器地址
+                if (!empty($this->proxy_user)) {
+                    curl_setopt($this->ch, CURLOPT_PROXYUSERPWD, $this->proxy_user. ':' .$this->proxy_pwd); //代理服务器地址
+                }
             }
             if (!empty($this->post_data)) {
                 curl_setopt($this->ch, CURLOPT_POSTFIELDS, $this->post_data);
