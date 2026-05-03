@@ -75,6 +75,7 @@ class Curl
     protected $proxy;
     protected $proxy_user;
     protected $proxy_pwd;
+    protected $interface;
 
 
 
@@ -314,6 +315,13 @@ class Curl
         return $this;
     }
 
+    public function setInterface($interface = '')
+    {
+        $this->interface = $interface;
+    }
+
+
+
     /**
      * 设置超时时间，一旦设置，一直有效
      * @param $time
@@ -533,6 +541,9 @@ class Curl
             curl_setopt($this->ch, CURLOPT_ENCODING, $this->encoding);
             curl_setopt($this->ch, CURLOPT_RETURNTRANSFER, 1);
             curl_setopt($this->ch, CURLINFO_HEADER_OUT, true);
+            if (!empty($this->interface)){
+                curl_setopt($this->ch, CURLOPT_INTERFACE, $this->interface);
+            }
             $this->is_build_ch = true;
             return $this->ch;
         } else {
