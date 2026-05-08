@@ -308,8 +308,8 @@ class Curl
     public function setProxy($proxy = '',$username = '', $password = '')
     {
         $this->proxy = $proxy;
-        $this->proxy_user = $proxy_user;
-        $this->proxy_pwd = $proxy_pwd;
+        $this->proxy_user = $username;
+        $this->proxy_pwd = $password;
 
 
         return $this;
